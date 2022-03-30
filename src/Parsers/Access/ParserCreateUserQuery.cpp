@@ -52,7 +52,6 @@ namespace
             bool expect_hash = false;
             bool expect_ldap_server_name = false;
             bool expect_kerberos_realm = false;
-
             if (ParserKeyword{"WITH"}.ignore(pos, expected))
             {
                 for (auto check_type : collections::range(AuthenticationType::MAX))
@@ -67,7 +66,6 @@ namespace
                             expect_kerberos_realm = true;
                         else if (check_type != AuthenticationType::NO_PASSWORD)
                             expect_password = true;
-
                         break;
                     }
                 }
@@ -82,6 +80,16 @@ namespace
                     else if (ParserKeyword{"DOUBLE_SHA1_HASH"}.ignore(pos, expected))
                     {
                         type = AuthenticationType::DOUBLE_SHA1_PASSWORD;
+                        expect_hash = true;
+                    }
+                    else if (ParserKeyword{"SHA256_HASH_SALT"}.ignore(pos, expected))
+                    {
+                        type = AuthenticationType::SHA256_PASSWORD_SALT;
+                        expect_hash = true;
+                    }
+                    else if (ParserKeyword{"DOUBLE_SHA1_HASH_SALT"}.ignore(pos, expected))
+                    {
+                        type = AuthenticationType::DOUBLE_SHA1_PASSWORD_SALT;
                         expect_hash = true;
                     }
                     else
@@ -133,7 +141,6 @@ namespace
                 auth_data.setLDAPServerName(value);
             else if (expect_kerberos_realm)
                 auth_data.setKerberosRealm(value);
-
             return true;
         });
     }

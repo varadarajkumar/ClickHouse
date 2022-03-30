@@ -6,14 +6,18 @@
 #include <Common/quoteString.h>
 #include <IO/WriteHelpers.h>
 #include <Poco/UUIDGenerator.h>
+#include <Poco/PBKDF2Engine.h>
+#include "Poco/HMACEngine.h"
+#include "Poco/SHA1Engine.h"
 #include <Poco/Logger.h>
 #include <base/FnTraits.h>
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/replace.hpp>
-
+#include <iostream>
 
 namespace DB
 {
+
 namespace ErrorCodes
 {
     extern const int ACCESS_ENTITY_ALREADY_EXISTS;
@@ -25,9 +29,9 @@ namespace ErrorCodes
     extern const int LOGICAL_ERROR;
 }
 
-
 namespace
 {
+
     String outputID(const UUID & id)
     {
         return "ID(" + toString(id) + ")";
@@ -472,7 +476,7 @@ UUID IAccessStorage::loginImpl(
         {
             if (!isAddressAllowedImpl(*user, address))
                 throwAddressNotAllowed(address);
-
+            
             if (!areCredentialsValidImpl(*user, credentials, external_authenticators))
                 throwInvalidCredentials();
 
@@ -524,6 +528,16 @@ UUID IAccessStorage::generateRandomID()
     return id;
 }
 
+void IAccessStorage::generateSaltDiget(std::string &num)
+{
+    std::string p("Password");
+	std::string s("salt");
+	Poco::PBKDF2Engine<Poco::HMACEngine<Poco::SHA1Engine> > pbkdf2(s, 4096, 25);
+	pbkdf2.update(p);
+	std::string dk = Poco::DigestEngine::digestToHex(pbkdf2.digest());
+
+    num=std::move(dk);
+}
 
 Poco::Logger * IAccessStorage::getLogger() const
 {

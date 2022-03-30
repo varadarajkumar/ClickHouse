@@ -8,8 +8,8 @@
 #include <optional>
 #include <vector>
 #include <atomic>
-
-
+#include <unordered_map>
+#include <map>
 namespace Poco { class Logger; }
 namespace Poco::Net { class IPAddress; }
 
@@ -149,7 +149,6 @@ public:
     /// Returns the ID of a user who has logged in (maybe on another node).
     /// The function assumes that the password has been already checked somehow, so we can skip checking it now.
     UUID getIDOfLoggedUser(const String & user_name) const;
-
 protected:
     virtual std::optional<UUID> findImpl(AccessEntityType type, const String & name) const = 0;
     virtual std::vector<UUID> findAllImpl(AccessEntityType type) const = 0;
@@ -170,6 +169,7 @@ protected:
     virtual UUID getIDOfLoggedUserImpl(const String & user_name) const;
 
     static UUID generateRandomID();
+    void generateSaltDiget(std::string &);
     Poco::Logger * getLogger() const;
     static String formatEntityTypeWithName(AccessEntityType type, const String & name) { return AccessEntityTypeInfo::get(type).formatEntityNameWithType(name); }
     [[noreturn]] void throwNotFound(const UUID & id) const;
@@ -189,7 +189,7 @@ protected:
     using Notification = std::tuple<OnChangedHandler, UUID, AccessEntityPtr>;
     using Notifications = std::vector<Notification>;
     static void notify(const Notifications & notifications);
-
+    
 private:
     AccessEntityPtr tryReadBase(const UUID & id) const;
 

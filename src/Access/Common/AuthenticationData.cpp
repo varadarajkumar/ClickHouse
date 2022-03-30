@@ -49,6 +49,16 @@ const AuthenticationTypeInfo & AuthenticationTypeInfo::get(AuthenticationType ty
             static const auto info = make_info("DOUBLE_SHA1_PASSWORD");
             return info;
         }
+        case AuthenticationType::SHA256_PASSWORD_SALT:
+        {
+            static const auto info = make_info("SHA256_PASSWORD_SALT");
+            return info;
+        }
+        case AuthenticationType::DOUBLE_SHA1_PASSWORD_SALT:
+        {
+            static const auto info = make_info("DOUBLE_SHA1_PASSWORD_SALT");
+            return info;
+        }
         case AuthenticationType::LDAP:
         {
             static const auto info = make_info("LDAP");
@@ -59,6 +69,7 @@ const AuthenticationTypeInfo & AuthenticationTypeInfo::get(AuthenticationType ty
             static const auto info = make_info("KERBEROS");
             return info;
         }
+        
         case AuthenticationType::MAX:
             break;
     }
@@ -104,9 +115,11 @@ void AuthenticationData::setPassword(const String & password_)
             return setPasswordHashBinary(Util::stringToDigest(password_));
 
         case AuthenticationType::SHA256_PASSWORD:
+        case AuthenticationType::SHA256_PASSWORD_SALT:
             return setPasswordHashBinary(Util::encodeSHA256(password_));
 
         case AuthenticationType::DOUBLE_SHA1_PASSWORD:
+        case AuthenticationType::DOUBLE_SHA1_PASSWORD_SALT:
             return setPasswordHashBinary(Util::encodeDoubleSHA1(password_));
 
         case AuthenticationType::NO_PASSWORD:
@@ -128,6 +141,12 @@ String AuthenticationData::getPassword() const
     return String(password_hash.data(), password_hash.data() + password_hash.size());
 }
 
+String AuthenticationData::getSalt() const
+{
+    //if (type != AuthenticationType::PLAINTEXT_PASSWORD)
+      //  throw Exception("Cannot decode the password", ErrorCodes::LOGICAL_ERROR);
+    return String(salt.data(), salt.data() + salt.size());
+}
 
 void AuthenticationData::setPasswordHashHex(const String & hash)
 {
@@ -145,7 +164,6 @@ void AuthenticationData::setPasswordHashHex(const String & hash)
 
     setPasswordHashBinary(digest);
 }
-
 
 String AuthenticationData::getPasswordHashHex() const
 {
@@ -179,6 +197,11 @@ void AuthenticationData::setPasswordHashBinary(const Digest & hash)
             password_hash = hash;
             return;
         }
+        case AuthenticationType::SHA256_PASSWORD_SALT:
+        {
+            password_hash = hash;
+            return;
+        }
 
         case AuthenticationType::DOUBLE_SHA1_PASSWORD:
         {
@@ -187,6 +210,11 @@ void AuthenticationData::setPasswordHashBinary(const Digest & hash)
                     "Password hash for the 'DOUBLE_SHA1_PASSWORD' authentication type has length " + std::to_string(hash.size())
                         + " but must be exactly 20 bytes.",
                     ErrorCodes::BAD_ARGUMENTS);
+            password_hash = hash;
+            return;
+        }
+        case AuthenticationType::DOUBLE_SHA1_PASSWORD_SALT:
+        {
             password_hash = hash;
             return;
         }
@@ -200,6 +228,44 @@ void AuthenticationData::setPasswordHashBinary(const Digest & hash)
             break;
     }
     throw Exception("setPasswordHashBinary(): authentication type " + toString(type) + " not supported", ErrorCodes::NOT_IMPLEMENTED);
+}
+
+void AuthenticationData::setSaltHashBinary(const Digest & salt_hash)
+{
+    switch (type)
+    {
+        case AuthenticationType::SHA256_PASSWORD_SALT:
+        case AuthenticationType::DOUBLE_SHA1_PASSWORD_SALT:
+        {
+            salt = salt_hash;
+            return;
+        }
+
+        default: 
+            throw Exception("Cannot specify salt binary hash for authentication type " + toString(type), ErrorCodes::LOGICAL_ERROR);
+    }
+}
+
+void AuthenticationData::setSalt(const String & salt_)
+{
+    switch (type)
+    {
+        case AuthenticationType::SHA256_PASSWORD_SALT:
+            //(salt = salt_); Util::encodeSHA256(salt_);//.data();
+            //return;
+            return setSaltHashBinary(Util::encodeSHA256(salt_));            
+        case AuthenticationType::DOUBLE_SHA1_PASSWORD_SALT:
+            //salt = salt_;
+            //return;
+            return setSaltHashBinary(Util::encodeDoubleSHA1(salt_));
+        default:
+           throw Exception("setSalt(): authentication type " + toString(type) + " not supported", ErrorCodes::NOT_IMPLEMENTED);
+    }
+}
+
+void AuthenticationData::setSaltEnableStatus(bool enableSalt)
+{ 
+    isSaltEnabled = enableSalt;
 }
 
 }

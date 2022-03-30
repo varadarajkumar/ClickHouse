@@ -62,6 +62,18 @@ namespace
                     by_value = auth_data.getPasswordHashHex();
                     break;
                 }
+                case AuthenticationType::SHA256_PASSWORD_SALT:
+                {
+                    auth_type_name = "sha256_hash_salt";
+                    by_value = auth_data.getPasswordHashHex();
+                    break;
+                }
+                case AuthenticationType::DOUBLE_SHA1_PASSWORD_SALT:
+                {
+                    auth_type_name = "double_sha1_hash_salt";
+                    by_value = auth_data.getPasswordHashHex();
+                    break;
+                }
                 case AuthenticationType::LDAP:
                 {
                     by_keyword = "SERVER";

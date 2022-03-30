@@ -28,6 +28,12 @@ enum class AuthenticationType
     KERBEROS,
 
     MAX,
+
+    ///Password hash with salt
+    SHA256_PASSWORD_SALT,
+    
+    ///Double Sha Password hash with salt
+    DOUBLE_SHA1_PASSWORD_SALT,
 };
 
 struct AuthenticationTypeInfo
@@ -71,6 +77,16 @@ public:
     void setPasswordHashBinary(const Digest & hash);
     const Digest & getPasswordHashBinary() const { return password_hash; }
 
+    /// Sets the salt in String form.
+    void setSalt(const String & salt);
+    void setSaltHashBinary(const Digest & salt_hash);
+    const Digest& getSaltHashBinary() const { return salt; } 
+    String getSalt() const;
+
+    /// Sets the salt in String form.
+    void setSaltEnableStatus(bool enableSalt);// { isSaltEnabled = enableSalt; }
+    const bool & getSaltEnabledStatus() const { return isSaltEnabled; }
+   
     /// Sets the server name for authentication type LDAP.
     const String & getLDAPServerName() const { return ldap_server_name; }
     void setLDAPServerName(const String & name) { ldap_server_name = name; }
@@ -97,6 +113,8 @@ private:
     Digest password_hash;
     String ldap_server_name;
     String kerberos_realm;
+    Digest salt;
+    bool isSaltEnabled;
 };
 
 }

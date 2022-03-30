@@ -26,14 +26,33 @@ namespace
         return (Util::stringToDigest(password) == password_plaintext);
     }
 
-    bool checkPasswordDoubleSHA1(const std::string_view & password, const Digest & password_double_sha1)
+    bool checkPasswordDoubleSHA1(const std::string_view & password, const Digest & password_double_sha1, bool isSaltEnabled, const String &salt)
     {
-        return (Util::encodeDoubleSHA1(password) == password_double_sha1);
+        if(isSaltEnabled)
+        {
+            auto salt_password = salt + std::string(password);
+            return Util::encodeDoubleSHA1(salt_password) == password_double_sha1;
+        }
+        else
+        {
+            return Util::encodeDoubleSHA1(password) == password_double_sha1;
+        }
     }
 
-    bool checkPasswordSHA256(const std::string_view & password, const Digest & password_sha256)
+    bool checkPasswordSHA256(const std::string_view & password, const Digest & password_sha256, bool isSaltEnabled, const String &salt)
     {
-        return Util::encodeSHA256(password) == password_sha256;
+        if(isSaltEnabled)
+        {
+            std::vector<uint8_t> salt_password = Util::encodeSHA256(password);
+            for(auto i : salt)
+                salt_password.push_back(i);
+
+            return salt_password == password_sha256;
+        }
+        else
+        {
+            return Util::encodeSHA256(password) == password_sha256;
+        }
     }
 
     bool checkPasswordDoubleSHA1MySQL(const std::string_view & scramble, const std::string_view & scrambled_password, const Digest & password_double_sha1)
@@ -81,6 +100,8 @@ bool Authentication::areCredentialsValid(const Credentials & credentials, const 
             case AuthenticationType::PLAINTEXT_PASSWORD:
             case AuthenticationType::SHA256_PASSWORD:
             case AuthenticationType::DOUBLE_SHA1_PASSWORD:
+            case AuthenticationType::SHA256_PASSWORD_SALT:
+            case AuthenticationType::DOUBLE_SHA1_PASSWORD_SALT:
             case AuthenticationType::LDAP:
                 throw Authentication::Require<BasicCredentials>("ClickHouse Basic Authentication");
 
@@ -106,6 +127,8 @@ bool Authentication::areCredentialsValid(const Credentials & credentials, const 
                 return checkPasswordDoubleSHA1MySQL(mysql_credentials->getScramble(), mysql_credentials->getScrambledPassword(), auth_data.getPasswordHashBinary());
 
             case AuthenticationType::SHA256_PASSWORD:
+            case AuthenticationType::SHA256_PASSWORD_SALT:
+            case AuthenticationType::DOUBLE_SHA1_PASSWORD_SALT:
             case AuthenticationType::LDAP:
             case AuthenticationType::KERBEROS:
                 throw Authentication::Require<BasicCredentials>("ClickHouse Basic Authentication");
@@ -126,10 +149,16 @@ bool Authentication::areCredentialsValid(const Credentials & credentials, const 
                 return checkPasswordPlainText(basic_credentials->getPassword(), auth_data.getPasswordHashBinary());
 
             case AuthenticationType::SHA256_PASSWORD:
-                return checkPasswordSHA256(basic_credentials->getPassword(), auth_data.getPasswordHashBinary());
+                return checkPasswordSHA256(basic_credentials->getPassword(), auth_data.getPasswordHashBinary(), auth_data.getSaltEnabledStatus(), auth_data.getSalt());
 
             case AuthenticationType::DOUBLE_SHA1_PASSWORD:
-                return checkPasswordDoubleSHA1(basic_credentials->getPassword(), auth_data.getPasswordHashBinary());
+                return checkPasswordDoubleSHA1(basic_credentials->getPassword(), auth_data.getPasswordHashBinary(), auth_data.getSaltEnabledStatus(), auth_data.getSalt());
+
+            case AuthenticationType::SHA256_PASSWORD_SALT:
+                return checkPasswordSHA256(basic_credentials->getPassword(), auth_data.getPasswordHashBinary(), auth_data.getSaltEnabledStatus(), auth_data.getSalt());
+
+            case AuthenticationType::DOUBLE_SHA1_PASSWORD_SALT:
+                return checkPasswordDoubleSHA1(basic_credentials->getPassword(), auth_data.getPasswordHashBinary(), auth_data.getSaltEnabledStatus(), auth_data.getSalt());
 
             case AuthenticationType::LDAP:
                 return external_authenticators.checkLDAPCredentials(auth_data.getLDAPServerName(), *basic_credentials);

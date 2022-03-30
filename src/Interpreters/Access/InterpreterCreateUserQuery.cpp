@@ -33,6 +33,21 @@ namespace
 
         if (query.auth_data)
             user.auth_data = *query.auth_data;
+        
+        user.auth_data.setSaltEnableStatus(false);
+        
+        if (query.auth_data->getType() == AuthenticationType::SHA256_PASSWORD_SALT 
+            || query.auth_data->getType() == AuthenticationType::DOUBLE_SHA1_PASSWORD_SALT)
+        {
+            //generate and add salt here
+            String salt = "SALT123";
+            user.auth_data.setSalt(salt);
+            std::vector<uint8_t> password = user.auth_data.getPasswordHashBinary();
+            std::vector<uint8_t> salt_hash = user.auth_data.getSaltHashBinary();
+            password.insert(password.end(), salt_hash.begin(), salt_hash.end());
+            user.auth_data.setPasswordHashBinary(password);
+            user.auth_data.setSaltEnableStatus(true);
+        }
 
         if (override_name && !override_name->host_pattern.empty())
         {

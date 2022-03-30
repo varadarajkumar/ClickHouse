@@ -86,6 +86,16 @@ String serializeAccessEntity(const IAccessEntity & entity)
     for (const ASTPtr & query : queries)
     {
         formatAST(*query, buf, false, true);
+        if (const User * user = typeid_cast<const User *>(&entity))
+        {
+            if(user->auth_data.getSaltEnabledStatus())
+            {
+                std::string strSalt = " '";
+                strSalt += user->auth_data.getSalt();
+                strSalt+="'";
+                buf.write(strSalt.c_str(), strSalt.length());
+            }
+        }
         buf.write(";\n", 2);
     }
     return buf.str();
@@ -121,6 +131,9 @@ AccessEntityPtr deserializeAccessEntity(const String & definition, const String 
                 throw Exception("Two access entities attached in " + path, ErrorCodes::INCORRECT_ACCESS_ENTITY_DEFINITION);
             res = user = std::make_unique<User>();
             InterpreterCreateUserQuery::updateUserFromQuery(*user, *create_user_query);
+
+            if(user->auth_data.getSaltEnabledStatus())
+               user->auth_data.setPassword(user->auth_data.getPassword() + user->auth_data.getSalt());
         }
         else if (auto * create_role_query = query->as<ASTCreateRoleQuery>())
         {
