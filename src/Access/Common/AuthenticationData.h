@@ -21,6 +21,12 @@ enum class AuthenticationType
     /// This kind of hash is used by the `mysql_native_password` authentication plugin.
     DOUBLE_SHA1_PASSWORD,
 
+    ///Password hash with salt
+    SHA256_PASSWORD_SALT,
+    
+    ///Double Sha Password hash with salt
+    DOUBLE_SHA1_PASSWORD_SALT,
+
     /// Password is checked by a [remote] LDAP server. Connection will be made at each authentication attempt.
     LDAP,
 
@@ -28,12 +34,6 @@ enum class AuthenticationType
     KERBEROS,
 
     MAX,
-
-    ///Password hash with salt
-    SHA256_PASSWORD_SALT,
-    
-    ///Double Sha Password hash with salt
-    DOUBLE_SHA1_PASSWORD_SALT,
 };
 
 struct AuthenticationTypeInfo

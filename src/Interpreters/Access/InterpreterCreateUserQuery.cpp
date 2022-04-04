@@ -10,7 +10,10 @@
 #include <Interpreters/Context.h>
 #include <Interpreters/executeDDLQueryOnCluster.h>
 #include <boost/range/algorithm/copy.hpp>
-
+#include <pcg_random.hpp>
+#include <Common/randomSeed.h>
+#include "Common/OpenSSLHelpers.h"
+#include <memory>
 
 namespace DB
 {
@@ -40,7 +43,9 @@ namespace
             || query.auth_data->getType() == AuthenticationType::DOUBLE_SHA1_PASSWORD_SALT)
         {
             //generate and add salt here
-            String salt = "SALT123";
+            pcg64_fast rng(randomSeed());
+            UInt64 rand = rng();
+            String salt = encodeSHA256(&rand, sizeof(rand));
             user.auth_data.setSalt(salt);
             std::vector<uint8_t> password = user.auth_data.getPasswordHashBinary();
             std::vector<uint8_t> salt_hash = user.auth_data.getSaltHashBinary();
